@@ -4,16 +4,97 @@ module Tick2
 
 
 module PartACase1 =
-    () // dummy value to make submodule non-empty
     // Three record types, one data value of each type. Choose suitable names.
+    
+    type MScBoundaries = {
+        Distinction: int;
+        Merit: int;
+        Pass: int;
+        Fail: int;
+    }
+    
+    type MEngBoundaries = {
+        First: int;
+        UpperSecond: int;
+        LowerSecond: int;
+        Fail: int;
+    }
+
+    type BEngBoundaries = {
+        First: int;
+        UpperSecond: int;
+        LowerSecond: int;
+        Third: int;
+        Fail: int;
+    }
+
+    let MScData = {
+        Distinction = 70;
+        Merit = 60;
+        Pass = 50;
+        Fail = 0;
+    } 
+
+    let MEngData = {
+        First = 70;
+        UpperSecond = 60;
+        LowerSecond = 50;
+        Fail = 0;
+    }
+
+    let BEngData = {
+        First = 70;
+        UpperSecond = 60;
+        LowerSecond = 50;
+        Third = 40;
+        Fail = 0;
+    }
 
 module PartACase2 =
-    () // dummy value to make submodule non-empty
     // One record type, three data values of this type. Choose suitable names.
 
+    type CourseBoundary = {
+        Course: string;
+        Bound70: string option;
+        Bound60: string option;
+        Bound50: string option;
+        Bound40: string option;
+        Bound0: string;
+        // Boundaries: list<{|classification: string; boundary: int|}>;
+    }
+
+    let MScData = {
+        Course = "MSc";
+        Bound70 = Some "Distinction";
+        Bound60 = Some "Merit";
+        Bound50 = Some "Pass";
+        Bound40 = None;
+        Bound0 = "Fail";
+    }
+
+    let MEngData = {
+        Course = "MEng";
+        Bound70 = Some "First";
+        Bound60 = Some "UpperSecond";
+        Bound50 = Some "LowerSecond";
+        Bound40 = None;
+        Bound0 = "Fail";
+    }
+
+    let BEngData = {
+        Course = "BEng";
+        Bound70 = Some "First";
+        Bound60 = Some "UpperSecond";
+        Bound50 = Some "LowerSecond";
+        Bound40 = Some "Third";
+        Bound0 = "Fail";
+    }
+
 module PartACase3 =
-    () // dummy value to make submodule non-empty
     // One type, three data values of this type. Choose suitable names.
+    let MScBoundaries = ["Distinction", 70; "Merit", 60; "Pass", 50; "Fail", 0]
+    let MEngBoundaries = ["First", 70; "UpperSecond", 60; "LowerSecond", 50; "Fail", 0]
+    let BEngBoundaries = ["First", 70; "UpperSecond", 60; "LowerSecond", 50; "Third", 40; "Fail", 0]
 
 //---------------------------Tick2 PartB case 2 skeleton code-------------------------------//
 
@@ -26,7 +107,23 @@ module PartBCase2 =
     /// Return Error if course or mark are not possible (marks must be in range 100 - 0). 
     /// The error message should say what the problem in the data was.
     let classify (course: string) (mark: float) : Result<string,string> =
-        failwithf "Not implemented yet"
+        if mark > 100 || mark < 0 
+        then Error <| sprintf "issue with bounds! Got {mark}."
+        else
+        let getHons (mark: float) (bounds: CourseBoundary): Result<string, string> = 
+            match mark with
+            | mark when mark >= 70 && Option.isSome bounds.Bound70 -> Ok bounds.Bound70.Value
+            | mark when mark >= 60 && Option.isSome bounds.Bound60 -> Ok bounds.Bound60.Value
+            | mark when mark >= 50 && Option.isSome bounds.Bound50 -> Ok bounds.Bound50.Value
+            | mark when mark >= 40 && Option.isSome bounds.Bound40 -> Ok bounds.Bound40.Value
+            | mark when mark >= 0 -> Ok bounds.Bound0
+            | _ -> Error "bounds checking should prevent us reaching here..."
+            
+        match course with
+        | "MSc" -> getHons mark MScData
+        | "MEng" -> getHons mark MEngData
+        | "BEng" -> getHons mark BEngData
+        | _ -> Error <| sprintf "could not match course name {course}"
 
 //---------------------------Tick2 PartB case 3 skeleton code-------------------------------//
 
@@ -37,7 +134,22 @@ module PartBCase3 =
     /// Return as a Ok string the name of the correct classification for a studen on given course with given mark.
     /// Return Error if course or mark are not possible (marks must be in range 100 - 0). The error message should say what the problem in the data was.
     let classify (course: string) (mark: float) : Result<string,string> =
-        failwithf "Not implemented yet"
+        let rec getHons (mark: float) (bounds: list<string * int>): Result<string, string> =
+            match bounds with
+            | [] -> Error "No bounds matched."
+            | hd::rest when (float (snd hd) > mark) -> getHons mark rest
+            | hd::_ -> Ok (fst hd)
+        
+        if mark > 100 || mark < 0 
+        then Error <| sprintf "issue with bounds! Got {mark}."
+        else
+        
+        match course with
+        | "MSc" -> getHons mark MScBoundaries
+        | "MEng" -> getHons mark MEngBoundaries
+        | "BEng" -> getHons mark BEngBoundaries 
+        | _ -> Error <| sprintf "could not match course name {course}"
+
 
 //------------------------------------Tick2 PartC skeleton code-----------------------------------//
 
