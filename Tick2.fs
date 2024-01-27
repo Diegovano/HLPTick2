@@ -176,7 +176,7 @@ module PartC =
     /// 3. Return Uplift = Some uplift if total is in the valid possible uplift range (0 - -2.5%) of boundary.
     let upliftFunc 
         (marks: Marks) 
-        (boundary:string) 
+        (boundary:string)
         (course: string)
             : Result<{|IsAboveBoundary: bool; Uplift:float option|}, string> =
         // Use markTotal to calculate total from marks
@@ -207,14 +207,46 @@ module PartC =
             // Return Ok classname or an error if there is any error.
             // (option and error returns ignored in above comments, must be dealt with)
 
-        failwithf "Not implemented" // replace by your code ()
+        let total = markTotal marks course
+        if Option.isNone total
+        then Error "could not get total mark"
+        else
+            let uplifedList = 
+                boundaries 
+                |>  List.map (fun (boundaryName : string) ->
+                        upliftFunc marks boundaryName course
+                    )
+
+            let firstError = 
+                uplifedList 
+                |> List.tryFind (
+                    function
+                    | Error _ -> true
+                    | Ok _ -> false
+                ) 
+            
+            if Option.isSome firstError
+            then match firstError.Value with
+                 | Error e -> Error e
+                 | _ -> Error "should not get here"
+            else 
+                uplifedList 
+                |> List.tryPick (
+                function
+                | Error _ -> failwithf "should not get here"
+                // | Ok upliftRecord -> not upliftRecord.IsAboveBoundary && Option.isSome upliftRecord.Uplift 
+                | Ok upliftRecord -> upliftRecord.Uplift 
+                )
+                |> Option.defaultValue 0.0
+                |> (+) total.Value
+                |> classify course
 
 //------------------------------Simple test data and functions---------------------------------//
 module TestClassify =
     /// test data comaptible with the Tick 2 problem
     let classifyUnitTests = [
         "MEng",75.0, Ok "First"
-        "MSc", 75.0,Ok "Distinction"
+        "MSc", 75.0, Ok "Distinction"
         "BEng", 75.0, Ok "First"
         "MEng",65.0, Ok "UpperSecond"
         "MSc", 65.0, Ok "Merit"
@@ -264,4 +296,8 @@ module PartX =
         lensMap lensC fc >> lensMap lensB fb
 
     let combineLens (l1: Lens<'A,'B>) (l2: Lens<'B,'C>) : Lens<'A,'C> =
-        failwithf "not implemented yet" // replace with your definition
+        // let combRead: 'A -> 'C = fun a -> fst l1 a |> fst l2
+        let combRead: 'A -> 'C = fun a -> fst l2 (fst l1 a)
+        let combUpdate: 'C -> 'A -> 'A = fun c a -> snd l1 ((snd l2) c (fst l1 a)) a
+
+        combRead, combUpdate
